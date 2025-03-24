@@ -1,0 +1,6 @@
+[mariadb]
+# Provided as an Example
+# AA Doesnt use Aria or MyISAM, So these are worth Considering
+
+# aria_pagecache_buffer_size = 16M
+# key_buffer_size = 16M
