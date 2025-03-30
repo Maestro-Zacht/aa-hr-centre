@@ -1,8 +1,78 @@
 {% extends "hrcentre/base.html" %}
+{% load i18n %}
 
-{% block page_title %}init title{% endblock page_title %}
+{% block hrcentre_page_header %}<h1 class="page-header text-center">HR Centre</h1>{% endblock hrcentre_page_header %}
 
 
-{% block hrcentre_page_header %}<h1 class="page-header text-center">init</h1>{% endblock hrcentre_page_header %}
+{% block extra_css %}
+    {% include "bundles/datatables-css-bs5.html" %}
+{% endblock extra_css %}
 
-{% block hrcentre_content %}init content{% endblock hrcentre_content %}
+{% block hrcentre_content %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card mt-2">
+                <div class="card-header text-center">{% translate "Alliances" %}</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-aa">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{% translate "Name" %}</th>
+                                    <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alliance_setup in alliance_setups %}
+                                    <tr>
+                                        <td>
+                                            <img src="{{ alliance_setup.alliance.logo_url_32 }}" class="rounded me-2">
+                                            <span>{{ alliance_setup.alliane.alliance_name }}</span>
+                                        </td>
+                                        <td><a class="btn btn-info" href="#">View</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-2">
+                <div class="card-header text-center">{% translate "Corporations" %}</div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-aa">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{% translate "Name" %}</th>
+                                    <th scope="col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for corp_setup in corp_setups %}
+                                    <tr>
+                                        <td>
+                                            <img src="{{ corp_setup.corporation.logo_url_32 }}" class="rounded me-2">
+                                            <span>{{ corp_setup.corporation.corporation_name }}</span>
+                                        </td>
+                                        <td><a class="btn btn-info" href="#">View</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock hrcentre_content %}
+
+{% block extra_javascript %}
+    {% include "bundles/datatables-js-bs5.html" %}
+{% endblock extra_javascript %}
+
+{% block extra_script %}
+    $(document).ready(function() {
+        $('.table-aa').DataTable();
+    });
+{% endblock extra_script %}
