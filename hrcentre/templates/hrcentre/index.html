@@ -27,9 +27,9 @@
                                     <tr>
                                         <td>
                                             <img src="{{ alliance_setup.alliance.logo_url_32 }}" class="rounded me-2">
-                                            <span>{{ alliance_setup.alliane.alliance_name }}</span>
+                                            <span>{{ alliance_setup.alliance.alliance_name }}</span>
                                         </td>
-                                        <td><a class="btn btn-info" href="#">View</a></td>
+                                        <td><a class="btn btn-info" href="{% url "hrcentre:alliance_view" alliance_setup.pk %}">View</a></td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -55,7 +55,7 @@
                                             <img src="{{ corp_setup.corporation.logo_url_32 }}" class="rounded me-2">
                                             <span>{{ corp_setup.corporation.corporation_name }}</span>
                                         </td>
-                                        <td><a class="btn btn-info" href="#">View</a></td>
+                                        <td><a class="btn btn-info" href="{% url "hrcentre:corp_view" corp_setup.pk %}">View</a></td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

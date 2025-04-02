@@ -87,6 +87,8 @@ INSTALLED_APPS += [
 
     'hrcentre',
 
+    'corptools',
+
     "debug_toolbar",
     'taskmonitor',
 ]

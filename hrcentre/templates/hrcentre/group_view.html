@@ -1,0 +1,54 @@
+{% extends "hrcentre/base.html" %}
+{% load i18n %}
+
+{% block hrcentre_page_header %}<h1 class="page-header text-center">{{ group_name }}</h1>{% endblock hrcentre_page_header %}
+
+
+{% block extra_css %}
+    {% include "bundles/datatables-css-bs5.html" %}
+{% endblock extra_css %}
+
+{% block hrcentre_content %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card mt-2">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-aa">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{% translate "Main" %}</th>
+                                    <th scope="col">{% translate "Number of alts" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for main in mains %}
+                                    <tr>
+                                        <td>
+                                            <img src="{{ main.character.portrait_url_32 }}" class="rounded me-2">
+                                            <span>{{ main.character.character_name }}</span>
+                                            <a class="btn text-info" href="{% url "corptools:reactmain" main.character.character_id %}">
+                                                <i class="fa-solid fa-up-right-from-square"></i>
+                                            </a>
+                                        </td>
+                                        <td>{{ main.number_of_chars }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock hrcentre_content %}
+
+{% block extra_javascript %}
+    {% include "bundles/datatables-js-bs5.html" %}
+{% endblock extra_javascript %}
+
+{% block extra_script %}
+    $(document).ready(function() {
+        $('.table-aa').DataTable();
+    });
+{% endblock extra_script %}
