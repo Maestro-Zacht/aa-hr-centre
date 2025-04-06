@@ -73,6 +73,10 @@
 
 {% block extra_script %}
     $(document).ready(function() {
-        $('.table-aa').DataTable();
+        $('.table-aa').DataTable({
+            columnDefs: [
+                { orderable: false, searchable: false, targets: 1 },
+            ]
+        });
     });
 {% endblock extra_script %}

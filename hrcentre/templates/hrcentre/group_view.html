@@ -1,5 +1,6 @@
 {% extends "hrcentre/base.html" %}
 {% load i18n %}
+{% load hrcentretags %}
 
 {% block hrcentre_page_header %}<h1 class="page-header text-center">{{ group_name }}</h1>{% endblock hrcentre_page_header %}
 
@@ -19,6 +20,8 @@
                                 <tr>
                                     <th scope="col">{% translate "Main" %}</th>
                                     <th scope="col">{% translate "Number of alts" %}</th>
+                                    <th scope="col">{% translate "Characters" %}</th>
+                                    <th scope="col">{% translate "Last Login (ET)" %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -32,6 +35,14 @@
                                             </a>
                                         </td>
                                         <td>{{ main.number_of_chars }}</td>
+                                        <td>
+                                            {% for char in main.character.character_ownership.user.chars %}
+                                                <span class="badge {% if char.character|ct_is_active %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Last login (ET): {{ char.last_login|date:"Y/m/d H:i" }}">{{ char.character.character_name }}</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if main.is_updating %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Older update between all chars: {% if main.older_last_update %}{{ main.older_last_update|date:"Y/m/d H:i" }}{% else %}Never{% endif %}">{{ main.last_login|date:"Y/m/d H:i" }}</span>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -49,6 +60,7 @@
 
 {% block extra_script %}
     $(document).ready(function() {
+        $('[data-bs-toggle="tooltip"]').tooltip();
         $('.table-aa').DataTable();
     });
 {% endblock extra_script %}

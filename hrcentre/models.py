@@ -1,8 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import Group, User
 
-
 from allianceauth.eveonline.models import EveCorporationInfo, EveAllianceInfo
+
+from corptools.models import CharacterAudit
 
 
 class General(models.Model):
@@ -65,3 +66,9 @@ class CorporationSetup(Setup):
 
     def __str__(self):
         return f'HR setup - {self.corporation}'
+
+
+class CharacterAuditLoginData(models.Model):
+    characteraudit = models.OneToOneField(CharacterAudit, on_delete=models.CASCADE, related_name='login_data')
+    last_login = models.DateTimeField(null=True, blank=True)
+    last_update = models.DateTimeField(null=True, blank=True)
