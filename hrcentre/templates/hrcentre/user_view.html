@@ -1,0 +1,42 @@
+{% extends "hrcentre/base.html" %}
+{% load i18n %}
+
+{% block hrcentre_page_header %}<h1 class="page-header text-center">{{ main.character.character_name }}</h1>{% endblock hrcentre_page_header %}
+
+{% block hrcentre_content %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 justify-content-center g-4">
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-header">{% translate "Character Audit" %}</div>
+                <div class="card-body">
+                    <a href="{% url "corptools:reactmain" main.character.character_id %}">
+                        {% translate "View on Character Audit" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-header">{% translate "Number of characters" %}</div>
+                <div class="card-body">{{ main.number_of_chars }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="row justify-content-center g-4 mt-2">
+        <div class="col-auto">
+            <div class="card text-center">
+                <div class="card-header">{% translate "User labels" %}</div>
+                <div class="card-body">
+                    {% for label in labels %}
+                        <span class="badge {{ label.label.bs_class }}">{{ label.label.name }}</span>
+                    {% empty %}
+                        {% translate "No label" %}
+                    {% endfor %}
+                    <div class="d-flex justify-content-center mt-2">
+                        <a href="{% url "hrcentre:user_labels" main.character.character_ownership.user.id %}" class="btn btn-info"><i class="fa-solid fa-pencil"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock hrcentre_content %}

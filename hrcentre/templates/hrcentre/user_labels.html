@@ -1,0 +1,23 @@
+{% extends "hrcentre/base.html" %}
+{% load i18n %}
+{% load django_bootstrap5 %}
+
+{% block hrcentre_page_header %}
+    <h1 class="page-header text-center">
+        {% blocktranslate with name=main.character.character_name %}
+            {{ name }} labels
+        {% endblocktranslate %}
+    </h1>
+{% endblock hrcentre_page_header %}
+
+{% block hrcentre_content %}
+    <div class="row">
+        <div class="col-12">
+            <form method="post">
+                {% csrf_token %}
+                {% bootstrap_form form %}
+                <button type="submit" class="btn btn-primary mt-3">{% translate "Submit" %}</button>
+            </form>
+        </div>
+    </div>
+{% endblock hrcentre_content %}

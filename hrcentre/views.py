@@ -1,18 +1,23 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.utils.translation import gettext as _
 from django.db.models import F, Count, Subquery, OuterRef, Prefetch, Max, Min, Exists, Case, When
 from django.db.models.lookups import LessThan
+from django.db import transaction
 from django.utils import timezone
 from django.views.generic import View
+from django.utils.functional import cached_property
 
 from allianceauth.authentication.models import CharacterOwnership
 
 from corptools.models import CharacterAudit
 
-from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData
+from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel
+from .forms import UserLabelsForm
+from .utils import check_user_access
 
 
 @login_required
@@ -35,13 +40,16 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         self.object_list = self.main_qs()
         context = {
-            'group_name': "test",
+            'group_name': self.get_object_name(),
             'mains': self.object_list,
         }
         return render(request, self.template_name, context=context)
 
     def base_qs(self):
         raise NotImplementedError("Subclasses must implement base_queryset() method.")
+
+    def get_object_name(self):
+        raise NotImplementedError("Subclasses must implement get_object_name() method.")
 
     def main_qs(self):
         ownership_qs = (
@@ -72,6 +80,10 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
                     queryset=ownership_qs,
                     to_attr='chars',
                 ),
+                Prefetch(
+                    'character__character_ownership__user__hr_labels',
+                    queryset=UserLabel.objects.select_related('label'),
+                )
             )
             .annotate(
                 last_login=Subquery(
@@ -111,7 +123,7 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
                 )
             )
             .annotate(
-                older_last_update=Case(
+                oldest_last_update=Case(
                     When(
                         Exists(
                             CharacterAuditLoginData.objects
@@ -143,11 +155,19 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
 
 class CorporationAuditListView(CharacterAuditListView):
-    def get(self, request, *args, **kwargs):
-        corp_setup = get_object_or_404(
+
+    @cached_property
+    def model_object(self):
+        return get_object_or_404(
             CorporationSetup.objects.select_related('corporation'),
             pk=self.kwargs['corp_id']
         )
+
+    def get_object_name(self):
+        return self.model_object.corporation.corporation_name
+
+    def get(self, request, *args, **kwargs):
+        corp_setup = self.model_object
         if not corp_setup.can_access(request.user):
             messages.error(request, _("You do not have permission to access this corporation setup."))
             return redirect('hrcentre:index')
@@ -155,10 +175,7 @@ class CorporationAuditListView(CharacterAuditListView):
         return super().get(request, *args, **kwargs)
 
     def base_qs(self):
-        corp_setup = get_object_or_404(
-            CorporationSetup.objects.select_related('corporation'),
-            pk=self.kwargs['corp_id']
-        )
+        corp_setup = self.model_object
         return (
             CharacterAudit.objects
             .filter(
@@ -169,11 +186,19 @@ class CorporationAuditListView(CharacterAuditListView):
 
 
 class AllianceAuditListView(CharacterAuditListView):
-    def get(self, request, *args, **kwargs):
-        alliance_setup = get_object_or_404(
+
+    @cached_property
+    def model_object(self):
+        return get_object_or_404(
             AllianceSetup.objects.select_related('alliance'),
             pk=self.kwargs['alliance_id']
         )
+
+    def get_object_name(self):
+        return self.model_object.alliance.alliance_name
+
+    def get(self, request, *args, **kwargs):
+        alliance_setup = self.model_object
         if not alliance_setup.can_access(request.user):
             messages.error(request, _("You do not have permission to access this alliance setup."))
             return redirect('hrcentre:index')
@@ -181,10 +206,7 @@ class AllianceAuditListView(CharacterAuditListView):
         return super().get(request, *args, **kwargs)
 
     def base_qs(self):
-        alliance_setup = get_object_or_404(
-            AllianceSetup.objects.select_related('alliance'),
-            pk=self.kwargs['alliance_id']
-        )
+        alliance_setup = self.model_object
         return (
             CharacterAudit.objects
             .filter(
@@ -192,3 +214,82 @@ class AllianceAuditListView(CharacterAuditListView):
                 character__alliance_id=alliance_setup.alliance.alliance_id,
             )
         )
+
+
+@login_required
+@permission_required('hrcentre.hr_access')
+def user_view(request, user_id):
+    main_char = get_object_or_404(
+        CharacterAudit.objects
+        .select_related('character__character_ownership__user')
+        .filter(character__character_ownership__user__profile__main_character=F('character'))
+        .annotate(
+            number_of_chars=Count('character__character_ownership__user__character_ownerships'),
+        ),
+        character__character_ownership__user__id=user_id,
+    )
+
+    if not check_user_access(request.user, main_char):
+        messages.error(request, _("You do not have permission to access this character."))
+        return redirect('hrcentre:index')
+
+    user_labels = (
+        UserLabel.objects
+        .filter(user=main_char.character.character_ownership.user)
+        .select_related('label')
+    )
+
+    context = {
+        'main': main_char,
+        'labels': user_labels,
+    }
+    return render(request, 'hrcentre/user_view.html', context=context)
+
+
+@login_required
+@permission_required('hrcentre.hr_access')
+def user_labels_view(request, user_id):
+    main_char = get_object_or_404(
+        CharacterAudit.objects
+        .select_related('character__character_ownership__user')
+        .filter(character__character_ownership__user__profile__main_character=F('character')),
+        character__character_ownership__user__id=user_id,
+    )
+
+    if not check_user_access(request.user, main_char):
+        messages.error(request, _("You do not have permission to access this character."))
+        return redirect('hrcentre:index')
+
+    user_labels = UserLabel.objects.filter(user=main_char.character.character_ownership.user).values_list('label', flat=True)
+
+    if request.method == 'POST':
+        form = UserLabelsForm(request.POST)
+        if form.is_valid():
+            selected_labels = form.cleaned_data['labels']
+
+            with transaction.atomic():
+                UserLabel.objects.filter(
+                    user=main_char.character.character_ownership.user,
+                ).exclude(
+                    label__in=selected_labels,
+                ).delete()
+
+                for label in selected_labels:
+                    UserLabel.objects.get_or_create(
+                        user=main_char.character.character_ownership.user,
+                        label=label,
+                        defaults={'added_by': request.user},
+                    )
+
+            messages.success(request, _("Labels have been updated successfully."))
+            return redirect('hrcentre:user_view', user_id=user_id)
+        else:
+            messages.error(request, _("Please correct the errors below."))
+    else:
+        form = UserLabelsForm(initial={'labels': user_labels})
+
+    context = {
+        'main': main_char,
+        'form': form,
+    }
+    return render(request, 'hrcentre/user_labels.html', context=context)

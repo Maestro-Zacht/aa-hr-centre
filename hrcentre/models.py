@@ -69,6 +69,80 @@ class CorporationSetup(Setup):
 
 
 class CharacterAuditLoginData(models.Model):
-    characteraudit = models.OneToOneField(CharacterAudit, on_delete=models.CASCADE, related_name='login_data')
+    characteraudit = models.OneToOneField(
+        CharacterAudit,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='login_data'
+    )
     last_login = models.DateTimeField(null=True, blank=True)
     last_update = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        default_permissions = ()
+
+
+class Label(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+
+    class LabelColorOptions(models.TextChoices):
+        BLUE = 'blue'
+        RED = 'red'
+        GREEN = 'green'
+        YELLOW = 'yellow'
+
+    color = models.CharField(
+        max_length=16,
+        choices=LabelColorOptions.choices,
+        default=LabelColorOptions.BLUE
+    )
+
+    class Meta:
+        default_permissions = ()
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def bs_class(self):
+        if self.color == Label.LabelColorOptions.RED:
+            return 'text-bg-danger'
+        elif self.color == Label.LabelColorOptions.GREEN:
+            return 'text-bg-success'
+        elif self.color == Label.LabelColorOptions.BLUE:
+            return 'text-bg-primary'
+        elif self.color == Label.LabelColorOptions.YELLOW:
+            return 'text-bg-warning'
+        return 'text-bg-secondary'
+
+
+class UserLabel(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='hr_labels'
+    )
+    label = models.ForeignKey(
+        Label,
+        on_delete=models.CASCADE,
+        related_name='+'
+    )
+
+    added_by = models.ForeignKey(
+        User,
+        on_delete=models.RESTRICT,
+        related_name='+'
+    )
+    added_on = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        default_permissions = ()
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'label'],
+                name='unique_user_label'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} - {self.label}'
