@@ -1,11 +1,12 @@
 {% extends "hrcentre/base.html" %}
 {% load i18n %}
+{% load tz %}
 
 {% block hrcentre_page_header %}<h1 class="page-header text-center">{{ main.character.character_name }}</h1>{% endblock hrcentre_page_header %}
 
 {% block hrcentre_content %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 justify-content-center g-4">
-        <div class="col">
+    <div class="row justify-content-center g-4">
+        <div class="col-3">
             <div class="card text-center">
                 <div class="card-header">{% translate "Character Audit" %}</div>
                 <div class="card-body">
@@ -15,27 +16,60 @@
                 </div>
             </div>
         </div>
-        <div class="col">
+        <div class="col-3">
             <div class="card text-center">
                 <div class="card-header">{% translate "Number of characters" %}</div>
                 <div class="card-body">{{ main.number_of_chars }}</div>
             </div>
         </div>
     </div>
-    <div class="row justify-content-center g-4 mt-2">
+    <div class="row justify-content-center gy-4 mt-2">
         <div class="col-auto">
             <div class="card text-center">
                 <div class="card-header">{% translate "User labels" %}</div>
                 <div class="card-body">
                     {% for label in labels %}
-                        <span class="badge {{ label.label.bs_class }}">{{ label.label.name }}</span>
+                        <span class="badge {{ label.label.bs_class }} mx-1">{{ label.label.name }}</span>
                     {% empty %}
                         {% translate "No label" %}
                     {% endfor %}
-                    <div class="d-flex justify-content-center mt-2">
+                    <div class="d-flex justify-content-center mt-4">
                         <a href="{% url "hrcentre:user_labels" main.character.character_ownership.user.id %}" class="btn btn-info"><i class="fa-solid fa-pencil"></i></a>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-12 px-4">
+            <div class="card text-center">
+                {% with notes=main.character.character_ownership.user.hr_notes %}
+                    <div class="card-header">{% translate "Notes" %}</div>
+                    <div class="card-body">
+                        {% if notes.notes %}
+                            <p class="card-text">{{ notes.notes }}</p>
+                        {% else %}
+                            <p class="card-text fst-italic">{% translate "Empty notes" %}</p>
+                        {% endif %}
+                        <div class="d-flex justify-content-center mt-4">
+                            <a href="{% url "hrcentre:user_notes" main.character.character_ownership.user.id %}" class="btn btn-info"><i class="fa-solid fa-pencil"></i></a>
+                        </div>
+                    </div>
+                    <div class="card-footer text-body-secondary">
+                        <div class="d-flex justify-content-between">
+                            <span>
+                                {% blocktranslate with created_by=notes.added_by.profile.main_character|default:"-" created_at=notes.added_on|date:"Y/m/d H:i e"|default:"-" %}
+                                    Created by: {{ created_by }} ({{ created_at }})
+                                {% endblocktranslate %}
+                            </span>
+                            <span>
+                                {% blocktranslate with updated_by=notes.last_updated_by.profile.main_character|default:"-" updated_at=notes.last_updated_on|date:"Y/m/d H:i e"|default:"-" %}
+                                    Updated by: {{ updated_by }} ({{ updated_at }})
+                                {% endblocktranslate %}
+                            </span>
+                        </div>
+                    </div>
+                {% endwith %}
             </div>
         </div>
     </div>

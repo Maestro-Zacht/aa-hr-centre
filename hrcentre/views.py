@@ -15,8 +15,8 @@ from allianceauth.authentication.models import CharacterOwnership
 
 from corptools.models import CharacterAudit
 
-from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel
-from .forms import UserLabelsForm
+from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes
+from .forms import UserLabelsForm, UserNotesForm
 from .utils import check_user_access
 
 
@@ -221,7 +221,10 @@ class AllianceAuditListView(CharacterAuditListView):
 def user_view(request, user_id):
     main_char = get_object_or_404(
         CharacterAudit.objects
-        .select_related('character__character_ownership__user')
+        .select_related(
+            'character__character_ownership__user__hr_notes__added_by__profile__main_character',
+            'character__character_ownership__user__hr_notes__last_updated_by__profile__main_character',
+        )
         .filter(character__character_ownership__user__profile__main_character=F('character'))
         .annotate(
             number_of_chars=Count('character__character_ownership__user__character_ownerships'),
@@ -289,7 +292,46 @@ def user_labels_view(request, user_id):
         form = UserLabelsForm(initial={'labels': user_labels})
 
     context = {
-        'main': main_char,
+        'page_header': _("User Labels"),
         'form': form,
     }
-    return render(request, 'hrcentre/user_labels.html', context=context)
+    return render(request, 'hrcentre/generic_form.html', context=context)
+
+
+@login_required
+@permission_required('hrcentre.hr_access')
+def user_notes_view(request, user_id):
+    main_char = get_object_or_404(
+        CharacterAudit.objects
+        .select_related('character__character_ownership__user__hr_notes')
+        .filter(character__character_ownership__user__profile__main_character=F('character')),
+        character__character_ownership__user__id=user_id,
+    )
+
+    if not check_user_access(request.user, main_char):
+        messages.error(request, _("You do not have permission to access this character."))
+        return redirect('hrcentre:index')
+
+    user_notes = UserNotes.objects.filter(user=main_char.character.character_ownership.user).first()
+
+    if request.method == 'POST':
+        form = UserNotesForm(request.POST, instance=user_notes)
+        if form.is_valid():
+            notes: UserNotes = form.save(commit=False)
+            notes.user = main_char.character.character_ownership.user
+            notes.last_updated_by = request.user
+            if user_notes is None:
+                notes.added_by = request.user
+            notes.save()
+            messages.success(request, _("Notes have been updated successfully."))
+            return redirect('hrcentre:user_view', user_id)
+        else:
+            messages.error(request, _("Please correct the errors below."))
+    else:
+        form = UserNotesForm(instance=user_notes)
+
+    context = {
+        'page_header': _("User Notes"),
+        'form': form,
+    }
+    return render(request, 'hrcentre/generic_form.html', context=context)

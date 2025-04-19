@@ -3,16 +3,12 @@
 {% load django_bootstrap5 %}
 
 {% block hrcentre_page_header %}
-    <h1 class="page-header text-center">
-        {% blocktranslate with name=main.character.character_name %}
-            {{ name }} labels
-        {% endblocktranslate %}
-    </h1>
+    <h1 class="page-header text-center">{{ page_header }}</h1>
 {% endblock hrcentre_page_header %}
 
 {% block hrcentre_content %}
     <div class="row">
-        <div class="col-12">
+        <div class="col-12 px-4">
             <form method="post">
                 {% csrf_token %}
                 {% bootstrap_form form %}

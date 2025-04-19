@@ -146,3 +146,29 @@ class UserLabel(models.Model):
 
     def __str__(self):
         return f'{self.user} - {self.label}'
+
+
+class UserNotes(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='hr_notes',
+        primary_key=True,
+    )
+    notes = models.TextField(blank=True, default='')
+
+    added_by = models.ForeignKey(
+        User,
+        on_delete=models.RESTRICT,
+        related_name='+',
+    )
+    added_on = models.DateTimeField(auto_now_add=True)
+    last_updated_by = models.ForeignKey(
+        User,
+        on_delete=models.RESTRICT,
+        related_name='+',
+    )
+    last_updated_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        default_permissions = ()
