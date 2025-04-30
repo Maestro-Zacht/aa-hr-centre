@@ -5,6 +5,8 @@ from allianceauth.eveonline.models import EveCorporationInfo, EveAllianceInfo
 
 from corptools.models import CharacterAudit
 
+from securegroups.models import SmartFilter
+
 
 class General(models.Model):
     class Meta:
@@ -21,6 +23,8 @@ class Setup(models.Model):
         blank=True,
         related_name='+'
     )
+
+    checks = models.ManyToManyField('UsersCheck')
 
     class Meta:
         abstract = True
@@ -172,3 +176,16 @@ class UserNotes(models.Model):
 
     class Meta:
         default_permissions = ()
+
+
+class UsersCheck(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, blank=True, default='')
+
+    filters = models.ManyToManyField(SmartFilter, related_name='+')
+
+    class Meta:
+        default_permissions = ()
+
+    def __str__(self):
+        return self.name

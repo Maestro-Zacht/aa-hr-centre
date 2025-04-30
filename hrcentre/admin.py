@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CorporationSetup, AllianceSetup, Label
+from .models import CorporationSetup, AllianceSetup, Label, UsersCheck
 
 
 @admin.register(CorporationSetup)
@@ -18,3 +18,9 @@ class LabelAdmin(admin.ModelAdmin):
     list_display = ('name', 'color',)
     search_fields = ('name',)
     ordering = ('name',)
+
+
+@admin.register(UsersCheck)
+class UsersCheckAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', )
+    search_fields = ('name', 'description', )

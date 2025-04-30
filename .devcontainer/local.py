@@ -88,6 +88,7 @@ INSTALLED_APPS += [
     'hrcentre',
 
     'corptools',
+    'securegroups',
 
     "debug_toolbar",
     'taskmonitor',
