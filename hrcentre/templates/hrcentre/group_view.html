@@ -13,52 +13,114 @@
     <div class="row">
         <div class="col-12 px-4">
             <div class="card mt-2">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="member-list-tab" data-bs-toggle="tab" data-bs-target="#member-list-panel" type="button" role="tab" aria-controls="member-list-panel" aria-selected="true">
+                                {% translate "Members" %}
+                            </button>
+                        </li>
+                        {% for check in checks %}
+                            <li class="nav-item">
+                                <button class="nav-link" id="check-{{ check.pk }}-tab" data-bs-toggle="tab" data-bs-target="#check-{{ check.pk }}-panel" type="button" role="tab" aria-controls="check-{{ check.pk }}-panel" aria-selected="false">
+                                    {{ check.name|safe }}
+                                </button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-aa">
-                            <thead>
-                                <tr>
-                                    <th scope="col">{% translate "Main" %}</th>
-                                    <th scope="col">{% translate "Number of characters" %}</th>
-                                    <th scope="col">{% translate "Characters" %}</th>
-                                    <th scope="col">{% translate "Last Login (ET)" %}</th>
-                                    <th scope="col">{% translate "Labels" %}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for main in mains %}
-                                    <tr>
-                                        <td>
-                                            <img src="{{ main.character.portrait_url_32 }}" class="rounded me-2">
-                                            <span>{{ main.character.character_name }}</span>
-                                            <a class="btn text-info" href="{% url "hrcentre:user_view" main.character.character_ownership.user.id %}">
-                                                <i class="fa-solid fa-up-right-from-square"></i>
-                                            </a>
-                                        </td>
-                                        <td>{{ main.number_of_chars }}</td>
-                                        <td>
-                                            {% for char in main.character.character_ownership.user.chars %}
-                                                <span class="badge {% if char.character|ct_is_active %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Last login (ET): {{ char.last_login|date:"Y/m/d H:i" }}">{{ char.character.character_name }}</span>
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="member-list-panel" role="tabpanel" aria-labelledby="member-list-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-aa">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">{% translate "Main" %}</th>
+                                            <th scope="col">{% translate "Number of characters" %}</th>
+                                            <th scope="col">{% translate "Characters" %}</th>
+                                            <th scope="col">{% translate "Last Login (ET)" %}</th>
+                                            <th scope="col">{% translate "Labels" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for main in mains %}
+                                            <tr>
+                                                <td>
+                                                    <img src="{{ main.character.portrait_url_32 }}" class="rounded me-2">
+                                                    <span>{{ main.character.character_name }}</span>
+                                                    <a class="btn text-info" href="{% url "hrcentre:user_view" main.character.character_ownership.user.id %}">
+                                                        <i class="fa-solid fa-up-right-from-square"></i>
+                                                    </a>
+                                                </td>
+                                                <td>{{ main.number_of_chars }}</td>
+                                                <td>
+                                                    {% for char in main.character.character_ownership.user.chars %}
+                                                        <span class="badge {% if char.character|ct_is_active %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Last login (ET): {{ char.last_login|date:"Y/m/d H:i" }}">{{ char.character.character_name }}</span>
+                                                    {% endfor %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge {% if main.is_updating %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Oldest update between all chars: {% if main.oldest_last_update %}{{ main.oldest_last_update|date:"Y/m/d H:i" }}{% else %}Never{% endif %}">
+                                                        {% if main.last_login %}
+                                                            {{ main.last_login|date:"Y/m/d H:i" }}
+                                                        {% else %}
+                                                            {% translate "Unknown" %}
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {% for userlabel in main.character.character_ownership.user.hr_labels.all %}
+                                                        <span class="badge {{ userlabel.label.bs_class }}">{{ userlabel.label.name }}</span>
+                                                    {% endfor %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% for check, filter_data in checks.items %}
+                            <div class="tab-pane fade" id="check-{{ check.pk }}-panel" role="tabpanel" aria-labelledby="check-{{ check.pk }}-tab" tabindex="0">
+                                {{ check.description|safe }}
+                                <div class="table-responsive">
+                                    <table class="table table-aa">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">{% translate "Main" %}</th>
+                                                {% for filter in check.filters.all %}
+                                                    <th scope="col">{{ filter }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for main in mains %}
+                                                <tr>
+                                                    <td>
+                                                        <img src="{{ main.character.portrait_url_32 }}" class="rounded me-2">
+                                                        <span>{{ main.character.character_name }}</span>
+                                                        <a class="btn text-info" href="{% url "hrcentre:user_view" main.character.character_ownership.user.id %}">
+                                                            <i class="fa-solid fa-up-right-from-square"></i>
+                                                        </a>
+                                                    </td>
+                                                    {% for filter in check.filters.all %}
+                                                        <td>
+                                                            {% sf_check filter main.character.character_ownership.user filter_data as check_result %}
+                                                            <span class="badge {% if check_result.check %}text-bg-success{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="{{ check_result.message }}">
+                                                                {% if check_result.check %}
+                                                                    <i class="fa-solid fa-check-circle"></i>
+                                                                {% else %}
+                                                                    <i class="fa-solid fa-times-circle"></i>
+                                                                {% endif %}
+                                                            </span>
+                                                        </td>
+                                                    {% endfor %}
+                                                </tr>
                                             {% endfor %}
-                                        </td>
-                                        <td>
-                                            <span class="badge {% if main.is_updating %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Oldest update between all chars: {% if main.oldest_last_update %}{{ main.oldest_last_update|date:"Y/m/d H:i" }}{% else %}Never{% endif %}">
-                                                {% if main.last_login %}
-                                                    {{ main.last_login|date:"Y/m/d H:i" }}
-                                                {% else %}
-                                                    {% translate "Unknown" %}
-                                                {% endif %}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {% for userlabel in main.character.character_ownership.user.hr_labels.all %}
-                                                <span class="badge {{ userlabel.label.bs_class }}">{{ userlabel.label.name }}</span>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>

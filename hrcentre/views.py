@@ -17,7 +17,7 @@ from corptools.models import CharacterAudit
 
 from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes
 from .forms import UserLabelsForm, UserNotesForm
-from .utils import check_user_access
+from .utils import check_user_access, smartfilter_process_bulk
 
 
 @login_required
@@ -38,10 +38,17 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = "hrcentre.hr_access"
 
     def get(self, request, *args, **kwargs):
-        self.object_list = self.main_qs()
+        object_list = self.main_qs()
+
+        user_checks = self.get_checks()
+        user_qs = User.objects.filter(pk__in=self.base_qs().values('character__character_ownership__user'))
+
+        checks_dict = {ck: smartfilter_process_bulk(ck.filters.all(), user_qs) for ck in user_checks}
+
         context = {
             'group_name': self.get_object_name(),
-            'mains': self.object_list,
+            'mains': object_list,
+            'checks': checks_dict,
         }
         return render(request, self.template_name, context=context)
 
@@ -50,6 +57,9 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     def get_object_name(self):
         raise NotImplementedError("Subclasses must implement get_object_name() method.")
+
+    def get_checks(self):
+        raise NotImplementedError("Subclasses must implement get_checks() method.")
 
     def main_qs(self):
         ownership_qs = (
@@ -159,12 +169,17 @@ class CorporationAuditListView(CharacterAuditListView):
     @cached_property
     def model_object(self):
         return get_object_or_404(
-            CorporationSetup.objects.select_related('corporation'),
+            CorporationSetup.objects
+            .select_related('corporation')
+            .prefetch_related('checks__filters'),
             pk=self.kwargs['corp_id']
         )
 
     def get_object_name(self):
         return self.model_object.corporation.corporation_name
+
+    def get_checks(self):
+        return self.model_object.checks.all()
 
     def get(self, request, *args, **kwargs):
         corp_setup = self.model_object
@@ -190,12 +205,17 @@ class AllianceAuditListView(CharacterAuditListView):
     @cached_property
     def model_object(self):
         return get_object_or_404(
-            AllianceSetup.objects.select_related('alliance'),
+            AllianceSetup.objects
+            .select_related('alliance')
+            .prefetch_related('checks__filters'),
             pk=self.kwargs['alliance_id']
         )
 
     def get_object_name(self):
         return self.model_object.alliance.alliance_name
+
+    def get_checks(self):
+        return self.model_object.checks.all()
 
     def get(self, request, *args, **kwargs):
         alliance_setup = self.model_object
