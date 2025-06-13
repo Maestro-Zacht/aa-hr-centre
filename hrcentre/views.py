@@ -15,7 +15,7 @@ from allianceauth.authentication.models import CharacterOwnership
 
 from corptools.models import CharacterAudit
 
-from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes
+from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label
 from .forms import UserLabelsForm, UserNotesForm
 from .utils import check_user_access, smartfilter_process_bulk
 
@@ -45,10 +45,29 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
 
         checks_dict = {ck: smartfilter_process_bulk(ck.filters.all(), user_qs) for ck in user_checks}
 
+        labels = Label.objects.filter(
+            pk__in=UserLabel.objects
+            .filter(user__in=user_qs)
+            .values('label')
+        )
+
+        for label in labels:
+            object_list = object_list.annotate(
+                **{
+                    f'has_label_{label.pk}': Exists(
+                        UserLabel.objects.filter(
+                            user=OuterRef('character__character_ownership__user'),
+                            label=label,
+                        )
+                    )
+                }
+            )
+
         context = {
             'group_name': self.get_object_name(),
             'mains': object_list,
             'checks': checks_dict,
+            'labels': labels,
         }
         return render(request, self.template_name, context=context)
 

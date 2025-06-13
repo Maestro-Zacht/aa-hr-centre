@@ -12,6 +12,11 @@ def ct_is_active(char: EveCharacter) -> bool:
     return char.characteraudit.is_active() if hasattr(char, 'characteraudit') else False
 
 
+@register.filter
+def hr_has_label(main, label):
+    return getattr(main, f'has_label_{label.pk}', False)
+
+
 @register.simple_tag
 def sf_check(filter, user, bulk_data):
     return process_user(filter, user, bulk_data)

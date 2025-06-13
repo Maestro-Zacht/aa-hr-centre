@@ -33,7 +33,7 @@
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="member-list-panel" role="tabpanel" aria-labelledby="member-list-tab" tabindex="0">
                             <div class="table-responsive">
-                                <table class="table table-aa">
+                                <table class="table table-aa w-100" id="members-table">
                                     <thead>
                                         <tr>
                                             <th scope="col">{% translate "Main" %}</th>
@@ -41,6 +41,9 @@
                                             <th scope="col">{% translate "Characters" %}</th>
                                             <th scope="col">{% translate "Last Login (ET)" %}</th>
                                             <th scope="col">{% translate "Labels" %}</th>
+                                            {% for label in labels %}
+                                                <th scope="col">{{ label }}</th>
+                                            {% endfor %}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -73,6 +76,9 @@
                                                         <span class="badge {{ userlabel.label.bs_class }}">{{ userlabel.label.name }}</span>
                                                     {% endfor %}
                                                 </td>
+                                                {% for label in labels %}
+                                                    <td>{% if main|hr_has_label:label %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td>
+                                                {% endfor %}
                                             </tr>
                                         {% endfor %}
                                     </tbody>
@@ -83,12 +89,13 @@
                             <div class="tab-pane fade" id="check-{{ check.pk }}-panel" role="tabpanel" aria-labelledby="check-{{ check.pk }}-tab" tabindex="0">
                                 {{ check.description|safe }}
                                 <div class="table-responsive">
-                                    <table class="table table-aa">
+                                    <table class="table table-aa w-100" id="check-table-{{ check.pk }}">
                                         <thead>
                                             <tr>
                                                 <th scope="col">{% translate "Main" %}</th>
                                                 {% for filter in check.filters.all %}
                                                     <th scope="col">{{ filter }}</th>
+                                                    <th scope="col">I should be hidden</th>
                                                 {% endfor %}
                                             </tr>
                                         </thead>
@@ -103,15 +110,24 @@
                                                         </a>
                                                     </td>
                                                     {% for filter in check.filters.all %}
+                                                    {% sf_check filter main.character.character_ownership.user filter_data as check_result %}
                                                         <td>
-                                                            {% sf_check filter main.character.character_ownership.user filter_data as check_result %}
-                                                            <span class="badge {% if check_result.check %}text-bg-success{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="{{ check_result.message }}">
+                                                            <span class="badge {% if check_result.check %}text-bg-success{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="{{ check_result.message|default:"None" }}">
                                                                 {% if check_result.check %}
                                                                     <i class="fa-solid fa-check-circle"></i>
+                                                                    <p class="d-none">{% translate "Yes" %}</p>
                                                                 {% else %}
                                                                     <i class="fa-solid fa-times-circle"></i>
+                                                                    <p class="d-none">{% translate "No" %}</p>
                                                                 {% endif %}
                                                             </span>
+                                                        </td>
+                                                        <td>
+                                                            {% if check_result.check %}
+                                                                {% translate "Yes" %}
+                                                            {% else %}
+                                                                {% translate "No" %}
+                                                            {% endif %}
                                                         </td>
                                                     {% endfor %}
                                                 </tr>
@@ -135,13 +151,59 @@
 
 {% block extra_javascript %}
     {% include "bundles/datatables-js-bs5.html" %}
+    {% include "bundles/filterdropdown-js.html" %}
 {% endblock extra_javascript %}
 
 {% block extra_script %}
+    let label_columns = [{% for label in labels %}{{ 4|add:forloop.counter }}{% if not forloop.last %},{% endif %}{% endfor %}];
     $(document).ready(function() {
         $('[data-bs-toggle="tooltip"]').tooltip();
-        $('.table-aa').DataTable({
-            "pageLength": 50
+        $('#members-table').DataTable({
+            "pageLength": 50,
+            columnDefs: [
+                {
+                    targets: label_columns,
+                    visible: false
+                }
+            ],
+            filterDropDown: {
+                bootstrap: true,
+                bootstrap_version: 5,
+                columns: [
+                    {% for label in labels %}
+                    {
+                        "idx": {{ 4|add:forloop.counter }},
+                        "title": "{{ label }}",
+                    },
+                    {% endfor %}
+                ]
+            }
         });
+        {% for check in checks %}
+        let result_columns{{ check.pk }} = [{% for filter in check.filters.all %}{% widthratio forloop.counter 1 2 %}{% if not forloop.last %},{% endif %}{% endfor %}];
+        $('#check-table-{{ check.pk }}').DataTable({
+            "pageLength": 50,
+            columnDefs: [
+                {
+                    targets: result_columns{{ check.pk }},
+                    visible: false
+                }
+            ],
+            filterDropDown: {
+                bootstrap: true,
+                bootstrap_version: 5,
+                columns: [
+                    {% for filter in check.filters.all %}
+                    {% widthratio forloop.counter0 1 2 as column_i%}
+                    {
+                        "idx": {{ 2|add:column_i }},
+                        "title": "{{ filter.filter_object.name }}",
+                        "autoSize": false
+                    },
+                    {% endfor %}
+                ]
+            }
+        });
+        {% endfor %}
     });
 {% endblock extra_script %}
