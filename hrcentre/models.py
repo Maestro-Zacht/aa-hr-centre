@@ -189,3 +189,22 @@ class UsersCheck(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class LabelGrouping(models.Model):
+    options = models.ManyToManyField(Label, related_name='+')
+    multiple_selection = models.BooleanField(default=False)
+
+    name = models.CharField(max_length=64, unique=True)
+    description = models.TextField(blank=True, default='')
+
+    can_self_assign = models.BooleanField(default=False)
+
+    show_to_alliances = models.ManyToManyField(AllianceSetup, blank=True, related_name='label_groupings')
+    show_to_corporations = models.ManyToManyField(CorporationSetup, blank=True, related_name='label_groupings')
+
+    class Meta:
+        default_permissions = ()
+
+    def __str__(self):
+        return self.name
