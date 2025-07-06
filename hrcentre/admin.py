@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CorporationSetup, AllianceSetup, Label, UsersCheck
+from .models import CorporationSetup, AllianceSetup, Label, UsersCheck, LabelGrouping
 
 
 @admin.register(CorporationSetup)
@@ -24,3 +24,11 @@ class LabelAdmin(admin.ModelAdmin):
 class UsersCheckAdmin(admin.ModelAdmin):
     list_display = ('name', 'description', )
     search_fields = ('name', 'description', )
+
+
+@admin.register(LabelGrouping)
+class LabelGroupingAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'can_self_assign', )
+    search_fields = ('name', 'description', )
+    filter_horizontal = ('options', 'show_to_alliances', 'show_to_corporations',)
+    list_filter = ('can_self_assign', 'show_to_alliances', 'show_to_corporations',)
