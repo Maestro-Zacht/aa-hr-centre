@@ -200,9 +200,6 @@ class LabelGrouping(models.Model):
 
     can_self_assign = models.BooleanField(default=False)
 
-    show_to_alliances = models.ManyToManyField(AllianceSetup, blank=True, related_name='label_groupings')
-    show_to_corporations = models.ManyToManyField(CorporationSetup, blank=True, related_name='label_groupings')
-
     class Meta:
         default_permissions = ()
 

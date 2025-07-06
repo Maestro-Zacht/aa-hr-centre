@@ -30,5 +30,5 @@ class UsersCheckAdmin(admin.ModelAdmin):
 class LabelGroupingAdmin(admin.ModelAdmin):
     list_display = ('name', 'description', 'can_self_assign', )
     search_fields = ('name', 'description', )
-    filter_horizontal = ('options', 'show_to_alliances', 'show_to_corporations',)
-    list_filter = ('can_self_assign', 'show_to_alliances', 'show_to_corporations',)
+    filter_horizontal = ('options', )
+    list_filter = ('can_self_assign', )
