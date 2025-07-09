@@ -146,7 +146,7 @@ class UserLabel(models.Model):
     label = models.ForeignKey(
         Label,
         on_delete=models.CASCADE,
-        related_name='+'
+        related_name='user_labels'
     )
 
     added_by = models.ForeignKey(

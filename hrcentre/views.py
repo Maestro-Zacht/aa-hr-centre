@@ -15,8 +15,8 @@ from allianceauth.authentication.models import CharacterOwnership
 
 from corptools.models import CharacterAudit
 
-from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label
-from .forms import UserLabelsForm, UserNotesForm
+from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label, LabelGrouping
+from .forms import LabelGroupingChoiceForm, UserNotesForm
 from .utils import check_user_access, smartfilter_process_bulk
 
 
@@ -302,33 +302,54 @@ def user_labels_view(request, user_id):
         messages.error(request, _("You do not have permission to access this character."))
         return redirect('hrcentre:index')
 
-    user_labels = UserLabel.objects.filter(user=main_char.character.character_ownership.user).values_list('label', flat=True)
+    user: User = main_char.character.character_ownership.user
+    grouping_qs = LabelGrouping.objects.all()
 
     if request.method == 'POST':
-        form = UserLabelsForm(request.POST)
+        form = LabelGroupingChoiceForm(user, grouping_qs, request.POST)
         if form.is_valid():
-            selected_labels = form.cleaned_data['labels']
 
             with transaction.atomic():
-                UserLabel.objects.filter(
-                    user=main_char.character.character_ownership.user,
-                ).exclude(
-                    label__in=selected_labels,
-                ).delete()
 
-                for label in selected_labels:
-                    UserLabel.objects.get_or_create(
-                        user=main_char.character.character_ownership.user,
-                        label=label,
-                        defaults={'added_by': request.user},
-                    )
+                for grouping_name, labels in form.cleaned_data.items():
+                    grouping = get_object_or_404(LabelGrouping, name=grouping_name)
+
+                    if grouping.multiple_selection:
+                        UserLabel.objects.filter(
+                            user=user,
+                            label__grouping=grouping,
+                        ).exclude(
+                            label__in=labels
+                        ).delete()
+
+                        for label in labels:
+                            UserLabel.objects.get_or_create(
+                                user=user,
+                                label=label,
+                                defaults={'added_by': request.user}
+                            )
+                    else:
+                        label = labels.first() if grouping.options.count() == 1 else labels
+                        UserLabel.objects.filter(
+                            user=user,
+                            label__grouping=grouping,
+                        ).exclude(
+                            label=label
+                        ).delete()
+
+                        if label:
+                            UserLabel.objects.get_or_create(
+                                user=user,
+                                label=label,
+                                defaults={'added_by': request.user}
+                            )
 
             messages.success(request, _("Labels have been updated successfully."))
             return redirect('hrcentre:user_view', user_id=user_id)
         else:
             messages.error(request, _("Please correct the errors below."))
     else:
-        form = UserLabelsForm(initial={'labels': user_labels})
+        form = LabelGroupingChoiceForm(user, grouping_qs)
 
     context = {
         'page_header': _("User Labels"),
