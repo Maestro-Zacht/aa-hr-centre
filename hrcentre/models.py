@@ -24,7 +24,7 @@ class Setup(models.Model):
         related_name='+'
     )
 
-    checks = models.ManyToManyField('UsersCheck')
+    checks = models.ManyToManyField('UsersCheck', blank=True)
 
     class Meta:
         abstract = True

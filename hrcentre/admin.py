@@ -3,13 +3,17 @@ from django.contrib import admin
 from .models import CorporationSetup, AllianceSetup, Label, UsersCheck, LabelGrouping
 
 
+class SetupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('access_list', 'checks', )
+
+
 @admin.register(CorporationSetup)
-class CorporationSetupAdmin(admin.ModelAdmin):
+class CorporationSetupAdmin(SetupAdmin):
     pass
 
 
 @admin.register(AllianceSetup)
-class AllianceSetupAdmin(admin.ModelAdmin):
+class AllianceSetupAdmin(SetupAdmin):
     pass
 
 
@@ -19,14 +23,14 @@ class UsersCheckAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description', )
 
 
-class MandatoryMixin:
+class ValidateMinMixin:
     validate_min = True
 
     def get_formset(self, *args, **kwargs):
         return super().get_formset(validate_min=self.validate_min, *args, **kwargs)
 
 
-class LabelInline(MandatoryMixin, admin.TabularInline):
+class LabelInline(ValidateMinMixin, admin.TabularInline):
     model = Label
     min_num = 1
     extra = 0
