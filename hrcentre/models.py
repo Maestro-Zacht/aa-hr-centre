@@ -86,8 +86,25 @@ class CharacterAuditLoginData(models.Model):
         default_permissions = ()
 
 
+class LabelGrouping(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+    description = models.TextField(blank=True, default='')
+
+    can_self_assign = models.BooleanField(default=False)
+
+    multiple_selection = models.BooleanField(default=False)
+
+    class Meta:
+        default_permissions = ()
+
+    def __str__(self):
+        return self.name
+
+
 class Label(models.Model):
     name = models.CharField(max_length=64, unique=True)
+
+    grouping = models.ForeignKey(LabelGrouping, on_delete=models.CASCADE, related_name='options')
 
     class LabelColorOptions(models.TextChoices):
         BLUE = 'blue'
@@ -177,28 +194,15 @@ class UserNotes(models.Model):
     class Meta:
         default_permissions = ()
 
+    def __str__(self) -> str:
+        return str(self.user)
+
 
 class UsersCheck(models.Model):
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=255, blank=True, default='')
 
     filters = models.ManyToManyField(SmartFilter, related_name='+')
-
-    class Meta:
-        default_permissions = ()
-
-    def __str__(self):
-        return self.name
-
-
-class LabelGrouping(models.Model):
-    options = models.ManyToManyField(Label, related_name='+')
-    multiple_selection = models.BooleanField(default=False)
-
-    name = models.CharField(max_length=64, unique=True)
-    description = models.TextField(blank=True, default='')
-
-    can_self_assign = models.BooleanField(default=False)
 
     class Meta:
         default_permissions = ()
