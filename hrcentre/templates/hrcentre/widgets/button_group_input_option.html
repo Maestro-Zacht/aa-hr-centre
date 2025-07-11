@@ -1,0 +1,7 @@
+<input type="{{ widget.type }}"
+    name="{{ widget.name }}"
+    class="btn-check"
+    autocomplete="off"
+    {% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}
+    {% include "django/forms/widgets/attrs.html" %}>
+<label{% if widget.attrs.id %} for="{{ widget.attrs.id }}" class="{{ widget.hrcentre_label_class }}"{% endif %}>{{ widget.label }}</label>

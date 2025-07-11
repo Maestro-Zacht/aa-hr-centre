@@ -355,7 +355,7 @@ def user_labels_view(request, user_id):
         'page_header': _("User Labels"),
         'form': form,
     }
-    return render(request, 'hrcentre/generic_form.html', context=context)
+    return render(request, 'hrcentre/label_form.html', context=context)
 
 
 @login_required

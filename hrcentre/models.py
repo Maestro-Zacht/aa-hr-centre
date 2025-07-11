@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import Group, User
+from django.utils.translation import gettext_lazy as _
 
 from allianceauth.eveonline.models import EveCorporationInfo, EveAllianceInfo
 
@@ -93,12 +94,20 @@ class LabelGrouping(models.Model):
     can_self_assign = models.BooleanField(default=False)
 
     multiple_selection = models.BooleanField(default=False)
+    allow_empty = models.BooleanField(default=True)
 
     class Meta:
         default_permissions = ()
 
     def __str__(self):
         return self.name
+
+    @property
+    def form_help_text(self):
+        if not self.allow_empty and self.multiple_selection:
+            return _('Select at least one option.')
+        elif not self.allow_empty:
+            return _('Select an option.')
 
 
 class Label(models.Model):
@@ -135,6 +144,18 @@ class Label(models.Model):
         elif self.color == Label.LabelColorOptions.YELLOW:
             return 'text-bg-warning'
         return 'text-bg-secondary'
+
+    @property
+    def form_bs_class(self):
+        if self.color == Label.LabelColorOptions.RED:
+            return 'btn-outline-danger'
+        elif self.color == Label.LabelColorOptions.GREEN:
+            return 'btn-outline-success'
+        elif self.color == Label.LabelColorOptions.BLUE:
+            return 'btn-outline-primary'
+        elif self.color == Label.LabelColorOptions.YELLOW:
+            return 'btn-outline-warning'
+        return 'btn-outline-secondary'
 
 
 class UserLabel(models.Model):
