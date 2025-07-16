@@ -40,6 +40,7 @@ dependencies = [
     "allianceauth~=4.6",
 	"allianceauth-corptools~=2.9",
 	"allianceauth-securegroups~=0.8",
+	"django-esi>=7.0.1",
 ]
 
 [project.urls]
