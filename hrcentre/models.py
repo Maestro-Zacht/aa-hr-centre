@@ -18,6 +18,19 @@ class General(models.Model):
         )
 
 
+class UsersCheck(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, blank=True, default='')
+
+    filters = models.ManyToManyField(SmartFilter, related_name='+')
+
+    class Meta:
+        default_permissions = ()
+
+    def __str__(self):
+        return self.name
+
+
 class Setup(models.Model):
     access_list = models.ManyToManyField(
         Group,
@@ -25,7 +38,7 @@ class Setup(models.Model):
         related_name='+'
     )
 
-    checks = models.ManyToManyField('UsersCheck', blank=True)
+    checks = models.ManyToManyField(UsersCheck, blank=True)
 
     class Meta:
         abstract = True
@@ -217,16 +230,3 @@ class UserNotes(models.Model):
 
     def __str__(self) -> str:
         return str(self.user)
-
-
-class UsersCheck(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.CharField(max_length=255, blank=True, default='')
-
-    filters = models.ManyToManyField(SmartFilter, related_name='+')
-
-    class Meta:
-        default_permissions = ()
-
-    def __str__(self):
-        return self.name
