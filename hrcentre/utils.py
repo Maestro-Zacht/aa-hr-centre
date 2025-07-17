@@ -1,10 +1,10 @@
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.shortcuts import get_object_or_404
 
 from corptools.models import CharacterAudit
 
-from securegroups.models import SmartFilter
-
-from .models import AllianceSetup, CorporationSetup
+from .models import AllianceSetup, CorporationSetup, LabelGrouping, UserLabel
 
 
 def check_user_access(user: User, main: CharacterAudit) -> bool:
@@ -34,3 +34,39 @@ def smartfilter_process_bulk(filters, users):
         except Exception:
             pass
     return bulk_checks
+
+
+@transaction.atomic
+def save_labels(user: User, form_data: dict, request_user: User):
+    for grouping_name, labels in form_data.items():
+        grouping = get_object_or_404(LabelGrouping, name=grouping_name)
+
+        if grouping.multiple_selection:
+            UserLabel.objects.filter(
+                user=user,
+                label__grouping=grouping,
+            ).exclude(
+                label__in=labels
+            ).delete()
+
+            for label in labels:
+                UserLabel.objects.get_or_create(
+                    user=user,
+                    label=label,
+                    defaults={'added_by': request_user}
+                )
+        else:
+            label = labels.first() if grouping.options.count() == 1 else labels
+            UserLabel.objects.filter(
+                user=user,
+                label__grouping=grouping,
+            ).exclude(
+                label=label
+            ).delete()
+
+            if label:
+                UserLabel.objects.get_or_create(
+                    user=user,
+                    label=label,
+                    defaults={'added_by': request_user}
+                )

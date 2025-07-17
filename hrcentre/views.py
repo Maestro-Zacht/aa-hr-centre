@@ -6,18 +6,88 @@ from django.contrib import messages
 from django.utils.translation import gettext as _
 from django.db.models import F, Count, Subquery, OuterRef, Prefetch, Max, Min, Exists, Case, When
 from django.db.models.lookups import LessThan
-from django.db import transaction
 from django.utils import timezone
 from django.views.generic import View
 from django.utils.functional import cached_property
+from django.template.loader import render_to_string
 
 from allianceauth.authentication.models import CharacterOwnership
 
 from corptools.models import CharacterAudit
 
-from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label
-from .forms import UserLabelsForm, UserNotesForm
-from .utils import check_user_access, smartfilter_process_bulk
+from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label, LabelGrouping
+from .forms import LabelGroupingChoiceForm, UserNotesForm
+from .utils import check_user_access, smartfilter_process_bulk, save_labels
+
+
+def dashboard_labels(request):
+    ownership_qs = CharacterOwnership.objects.filter(user=request.user)
+    label_grouping_qs = LabelGrouping.objects.filter(can_self_assign=True)
+    if (
+        not label_grouping_qs.exists() or
+        not (
+            CorporationSetup.objects.filter(
+                corporation__corporation_id__in=ownership_qs.values('character__corporation_id')
+            ).exists() or
+            AllianceSetup.objects.filter(
+                alliance__alliance_id__in=ownership_qs.values('character__alliance_id')
+            ).exists()
+        )
+    ):
+        return ''
+
+    missing_answers = (
+        label_grouping_qs
+        .filter(allow_empty=False)
+        .exclude(Exists(
+            UserLabel.objects.filter(
+                user=request.user,
+                label__grouping=OuterRef('pk'),
+            )
+        ))
+    )
+
+    for grouping in missing_answers:
+        messages.error(
+            request,
+            _(
+                "HR CENTRE - You must select at least one label for the grouping: {grouping_name}."
+            ).format(grouping_name=grouping.name)
+        )
+
+    form = LabelGroupingChoiceForm(request.user, label_grouping_qs, prefix='hrcentre')
+    context = {
+        'form': form,
+    }
+    return render_to_string('hrcentre/dashboard_labels.html', context=context, request=request)
+
+
+@login_required
+def dashboard_post(request):
+    ownership_qs = CharacterOwnership.objects.filter(user=request.user)
+    label_grouping_qs = LabelGrouping.objects.filter(can_self_assign=True)
+    if request.method != 'POST' or (
+        not label_grouping_qs.exists() or
+        not (
+            CorporationSetup.objects.filter(
+                corporation__corporation_id__in=ownership_qs.values('character__corporation_id')
+            ).exists() or
+            AllianceSetup.objects.filter(
+                alliance__alliance_id__in=ownership_qs.values('character__alliance_id')
+            ).exists()
+        )
+    ):
+        messages.error(request, _("Invalid request."))
+        return redirect('authentication:dashboard')
+
+    form = LabelGroupingChoiceForm(request.user, label_grouping_qs, request.POST, prefix='hrcentre')
+    if form.is_valid():
+        save_labels(request.user, form.cleaned_data, request.user)
+        messages.success(request, _("Status has been updated successfully."))
+    else:
+        messages.error(request, _("Invalid data."))
+
+    return redirect('authentication:dashboard')
 
 
 @login_required
@@ -302,39 +372,25 @@ def user_labels_view(request, user_id):
         messages.error(request, _("You do not have permission to access this character."))
         return redirect('hrcentre:index')
 
-    user_labels = UserLabel.objects.filter(user=main_char.character.character_ownership.user).values_list('label', flat=True)
+    user: User = main_char.character.character_ownership.user
+    grouping_qs = LabelGrouping.objects.all()
 
     if request.method == 'POST':
-        form = UserLabelsForm(request.POST)
+        form = LabelGroupingChoiceForm(user, grouping_qs, request.POST)
         if form.is_valid():
-            selected_labels = form.cleaned_data['labels']
-
-            with transaction.atomic():
-                UserLabel.objects.filter(
-                    user=main_char.character.character_ownership.user,
-                ).exclude(
-                    label__in=selected_labels,
-                ).delete()
-
-                for label in selected_labels:
-                    UserLabel.objects.get_or_create(
-                        user=main_char.character.character_ownership.user,
-                        label=label,
-                        defaults={'added_by': request.user},
-                    )
-
-            messages.success(request, _("Labels have been updated successfully."))
+            save_labels(user, form.cleaned_data, request.user)
+            messages.success(request, _("Status has been updated successfully."))
             return redirect('hrcentre:user_view', user_id=user_id)
         else:
             messages.error(request, _("Please correct the errors below."))
     else:
-        form = UserLabelsForm(initial={'labels': user_labels})
+        form = LabelGroupingChoiceForm(user, grouping_qs)
 
     context = {
-        'page_header': _("User Labels"),
+        'page_header': _("User Status"),
         'form': form,
     }
-    return render(request, 'hrcentre/generic_form.html', context=context)
+    return render(request, 'hrcentre/edit_labels.html', context=context)
 
 
 @login_required

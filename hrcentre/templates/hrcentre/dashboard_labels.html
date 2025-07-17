@@ -1,0 +1,16 @@
+{% load i18n %}
+
+<div id="hrcentre-labels" class="col-6 mb-3">
+    <div class="card px-2">
+        <div class="card-body text-center">
+            {% translate "HR Centre" as widget_title %}
+            {% include "framework/dashboard/widget-title.html" with title=widget_title %}
+            <div class="row justify-content-center">
+                <div class="col-lg-4">
+                    {% url "hrcentre:dashboard_post" as form_action %}
+                    {% include "hrcentre/label_form.html" with form=form action=form_action %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
