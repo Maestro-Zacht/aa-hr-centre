@@ -83,7 +83,7 @@ def dashboard_post(request):
     form = LabelGroupingChoiceForm(request.user, label_grouping_qs, request.POST, prefix='hrcentre')
     if form.is_valid():
         save_labels(request.user, form.cleaned_data, request.user)
-        messages.success(request, _("Labels have been updated successfully."))
+        messages.success(request, _("Status has been updated successfully."))
     else:
         messages.error(request, _("Invalid data."))
 
@@ -379,7 +379,7 @@ def user_labels_view(request, user_id):
         form = LabelGroupingChoiceForm(user, grouping_qs, request.POST)
         if form.is_valid():
             save_labels(user, form.cleaned_data, request.user)
-            messages.success(request, _("Labels have been updated successfully."))
+            messages.success(request, _("Status has been updated successfully."))
             return redirect('hrcentre:user_view', user_id=user_id)
         else:
             messages.error(request, _("Please correct the errors below."))
@@ -387,7 +387,7 @@ def user_labels_view(request, user_id):
         form = LabelGroupingChoiceForm(user, grouping_qs)
 
     context = {
-        'page_header': _("User Labels"),
+        'page_header': _("User Status"),
         'form': form,
     }
     return render(request, 'hrcentre/edit_labels.html', context=context)
