@@ -4,6 +4,7 @@ from allianceauth import hooks
 from allianceauth.services.hooks import UrlHook, MenuItemHook
 
 from . import urls
+from .views import dashboard_labels
 
 
 class HRCentreMenuItemHook(MenuItemHook):
@@ -16,6 +17,14 @@ class HRCentreMenuItemHook(MenuItemHook):
         return ''
 
 
+class DashboardLabelsHook(hooks.DashboardItemHook):
+    def __init__(self):
+        super().__init__(
+            dashboard_labels,
+            7,
+        )
+
+
 @hooks.register('menu_item_hook')
 def register_menu():
     return HRCentreMenuItemHook()
@@ -24,3 +33,8 @@ def register_menu():
 @hooks.register('url_hook')
 def register_urls():
     return UrlHook(urls, 'hrcentre', 'hrcentre/')
+
+
+@hooks.register('dashboard_hook')
+def register_login_hook():
+    return DashboardLabelsHook()

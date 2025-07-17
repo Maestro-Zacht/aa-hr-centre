@@ -11,4 +11,5 @@ urlpatterns = [
     path('users/<int:user_id>/', views.user_view, name='user_view'),
     path('users/<int:user_id>/labels/', views.user_labels_view, name='user_labels'),
     path('users/<int:user_id>/notes/', views.user_notes_view, name='user_notes'),
+    path('dashboard/labels/', views.dashboard_post, name='dashboard_post'),
 ]

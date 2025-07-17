@@ -1,36 +1,24 @@
-{% extends "hrcentre/base.html" %}
-{% load i18n %}
 {% load django_bootstrap5 %}
+{% load i18n %}
+<form class="was-validated" method="post" action="{{ form_action }}" novalidate>
+    {% csrf_token %}
 
-{% block hrcentre_page_header %}
-    <h1 class="page-header text-center">{{ page_header }}</h1>
-{% endblock hrcentre_page_header %}
+    {% bootstrap_form_errors form type='non_fields' %}
 
-{% block hrcentre_content %}
-    <div class="row">
-        <div class="col-12 px-4">
-            <form class="was-validated" method="post" novalidate>
-                {% csrf_token %}
-
-                {% bootstrap_form_errors form type='non_fields' %}
-
-                {% for field in form %}
-                    <div class="mb-4">
-                        <legend>{{ field.label }}:</legend>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <p class="form-text mb-1" id="{{ field.auto_id }}_helptext">
-                                {{ field.help_text|safe }}
-                            </p>
-                        {% endif %}
-                        {% for error in field.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endfor %}
-                
-                <button type="submit" class="btn btn-primary mt-3">{% translate "Submit" %}</button>
-            </form>
+    {% for field in form %}
+        <div class="mb-4">
+            <legend>{{ field.label }}:</legend>
+            {{ field }}
+            {% if field.help_text %}
+                <p class="form-text mb-1" id="{{ field.auto_id }}_helptext">
+                    {{ field.help_text|safe }}
+                </p>
+            {% endif %}
+            {% for error in field.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
         </div>
-    </div>
-{% endblock hrcentre_content %}
+    {% endfor %}
+    
+    <button type="submit" class="btn btn-primary mt-3">{% translate "Submit" %}</button>
+</form>
