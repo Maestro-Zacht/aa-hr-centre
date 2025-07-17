@@ -36,6 +36,25 @@ def dashboard_labels(request):
     ):
         return ''
 
+    missing_answers = (
+        label_grouping_qs
+        .filter(allow_empty=False)
+        .exclude(Exists(
+            UserLabel.objects.filter(
+                user=request.user,
+                label__grouping=OuterRef('pk'),
+            )
+        ))
+    )
+
+    for grouping in missing_answers:
+        messages.error(
+            request,
+            _(
+                "HR CENTRE - You must select at least one label for the grouping: {grouping_name}."
+            ).format(grouping_name=grouping.name)
+        )
+
     form = LabelGroupingChoiceForm(request.user, label_grouping_qs, prefix='hrcentre')
     context = {
         'form': form,
