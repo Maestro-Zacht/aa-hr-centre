@@ -26,16 +26,6 @@ def check_user_access(user: User, main: CharacterAudit) -> bool:
     return can_access
 
 
-def smartfilter_process_bulk(filters, users):
-    bulk_checks = {}
-    for f in filters:
-        try:
-            bulk_checks[f.id] = f.filter_object.audit_filter(users)
-        except Exception:
-            pass
-    return bulk_checks
-
-
 @transaction.atomic
 def save_labels(user: User, form_data: dict, request_user: User):
     for grouping_name, labels in form_data.items():

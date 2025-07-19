@@ -30,6 +30,16 @@ class UsersCheck(models.Model):
     def __str__(self):
         return self.name
 
+    def with_parsed_filters(self, users):
+        if not hasattr(self, 'hr_bulk_checks'):
+            self.hr_bulk_checks = {}
+            for f in self.filters.all():
+                try:
+                    self.hr_bulk_checks[f.id] = f.filter_object.audit_filter(users)
+                except Exception:
+                    pass
+        return self
+
 
 class Setup(models.Model):
     access_list = models.ManyToManyField(
