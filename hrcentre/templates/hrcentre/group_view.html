@@ -33,6 +33,20 @@
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="member-list-panel" role="tabpanel" aria-labelledby="member-list-tab" tabindex="0">
                             <div class="table-responsive">
+                                <div class="d-flex justify-content-start mb-3">
+                                    <span class="align-content-center me-3">{% translate "Toggle column:" %}</span>
+                                    <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="0">{% translate "Main" %}</button>
+                                    <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="1">{% translate "Number of characters" %}</button>
+                                    <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="2">{% translate "Characters" %}</button>
+                                    <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="3">{% translate "Last Login (ET)" %}</button>
+                                    <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="4">{% translate "Labels" %}</button>
+                                    {% with labels_length=labels|length %}
+                                        {% for check in checks %}
+                                            {% widthratio forloop.counter 1 2 as counter %}
+                                            <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="{{ 3|add:labels_length|add:counter }}">{{ check|safe }}</button>
+                                        {% endfor %}
+                                    {% endwith %}
+                                </div>
                                 <table class="table table-aa w-100" id="members-table">
                                     <thead>
                                         <tr>
@@ -42,7 +56,11 @@
                                             <th scope="col">{% translate "Last Login (ET)" %}</th>
                                             <th scope="col">{% translate "Labels" %}</th>
                                             {% for label in labels %}
-                                                <th scope="col">{{ label }}</th>
+                                                <th scope="col">{{ label|safe }}</th>
+                                            {% endfor %}
+                                            {% for check in checks %}
+                                                <th scope="col">{{ check|safe }}</th>
+                                                <th scope="col">I should be hidden</th>
                                             {% endfor %}
                                         </tr>
                                     </thead>
@@ -79,13 +97,35 @@
                                                 {% for label in labels %}
                                                     <td>{% if main|hr_has_label:label %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td>
                                                 {% endfor %}
+                                                {% for check in checks %}
+                                                    {% with result=check|sf_check_result:main.character.character_ownership.user %}
+                                                        <td>
+                                                            <span class="badge {% if result %}text-bg-success{% else %}text-bg-danger{% endif %}">
+                                                                {% if result %}
+                                                                    <i class="fa-solid fa-check-circle"></i>
+                                                                    <p class="d-none">{% translate "Yes" %}</p>
+                                                                {% else %}
+                                                                    <i class="fa-solid fa-times-circle"></i>
+                                                                    <p class="d-none">{% translate "No" %}</p>
+                                                                {% endif %}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {% if result %}
+                                                                {% translate "Yes" %}
+                                                            {% else %}
+                                                                {% translate "No" %}
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endwith %}
+                                                {% endfor %}
                                             </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
-                        {% for check, filter_data in checks.items %}
+                        {% for check in checks %}
                             <div class="tab-pane fade" id="check-{{ check.pk }}-panel" role="tabpanel" aria-labelledby="check-{{ check.pk }}-tab" tabindex="0">
                                 {{ check.description|safe }}
                                 <div class="table-responsive">
@@ -110,15 +150,13 @@
                                                         </a>
                                                     </td>
                                                     {% for filter in check.filters.all %}
-                                                    {% sf_check filter main.character.character_ownership.user filter_data as check_result %}
+                                                        {% sf_check filter main.character.character_ownership.user check.hr_bulk_checks as check_result %}
                                                         <td>
                                                             <span class="badge {% if check_result.check %}text-bg-success{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="{{ check_result.message|default:"None" }}">
                                                                 {% if check_result.check %}
                                                                     <i class="fa-solid fa-check-circle"></i>
-                                                                    <p class="d-none">{% translate "Yes" %}</p>
                                                                 {% else %}
                                                                     <i class="fa-solid fa-times-circle"></i>
-                                                                    <p class="d-none">{% translate "No" %}</p>
                                                                 {% endif %}
                                                             </span>
                                                         </td>
@@ -155,16 +193,20 @@
 {% endblock extra_javascript %}
 
 {% block extra_script %}
-    let label_columns = [{% for label in labels %}{{ 4|add:forloop.counter }}{% if not forloop.last %},{% endif %}{% endfor %}];
+
     $(document).ready(function() {
         $('[data-bs-toggle="tooltip"]').tooltip();
-        $('#members-table').DataTable({
+        let label_columns = [{% for label in labels %}{{ 4|add:forloop.counter }}{% if not forloop.last %},{% endif %}{% endfor %}];
+        {% with labels_length=labels|length %}
+        let result_columns = [{% for check in checks %}{% widthratio forloop.counter 1 2 as counter %}{{ counter|add:4|add:labels_length }}{% if not forloop.last %},{% endif %}{% endfor %}];
+        {% endwith %}
+        const membersTable = $('#members-table').DataTable({
             "pageLength": 50,
             columnDefs: [
                 {
-                    targets: label_columns,
-                    visible: false
-                }
+                    targets: label_columns.concat(result_columns),
+                    visible: false,
+                },
             ],
             filterDropDown: {
                 bootstrap: true,
@@ -173,9 +215,18 @@
                     {% for label in labels %}
                     {
                         "idx": {{ 4|add:forloop.counter }},
-                        "title": "{{ label }}",
+                        "title": "{{ label|safe }}",
                     },
                     {% endfor %}
+                    {% with labels_length=labels|length %}
+                    {% for check in checks %}
+                    {% widthratio forloop.counter 1 2 as counter %}
+                    {
+                        "idx": {{ 4|add:labels_length|add:counter }},
+                        "title": "{{ check|safe }}",
+                    },
+                    {% endfor %}
+                    {% endwith %}
                 ]
             }
         });
@@ -186,7 +237,8 @@
             columnDefs: [
                 {
                     targets: result_columns{{ check.pk }},
-                    visible: false
+                    visible: false,
+                    searchable: false
                 }
             ],
             filterDropDown: {
@@ -205,5 +257,11 @@
             }
         });
         {% endfor %}
+        $('.toggle-column').on('click', function() {
+            let columnIdx = $(this).data('column');
+            let column = membersTable.column(columnIdx);
+            column.visible(!column.visible());
+            $(this).toggleClass('btn-info btn-secondary');
+        });
     });
 {% endblock extra_script %}

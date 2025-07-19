@@ -24,11 +24,52 @@ class UsersCheck(models.Model):
 
     filters = models.ManyToManyField(SmartFilter, related_name='+')
 
+    class OperatorChoices(models.TextChoices):
+        AND = "and"
+        OR = "or"
+        XOR = "xor"
+
+    operator = models.CharField(
+        max_length=10,
+        choices=OperatorChoices.choices,
+        default=OperatorChoices.AND
+    )
+    negate = models.BooleanField(default=False)
+
     class Meta:
         default_permissions = ()
 
     def __str__(self):
         return self.name
+
+    def with_parsed_filters(self, users):
+        if not hasattr(self, 'hr_bulk_checks'):
+            self.hr_bulk_checks = {}
+            for f in self.filters.all():
+                try:
+                    self.hr_bulk_checks[f.id] = f.filter_object.audit_filter(users)
+                except Exception:
+                    pass
+        return self
+
+    def result_for_user(self, user):
+        if not hasattr(self, 'hr_bulk_checks'):
+            raise ValueError("Checks have not been processed.")
+
+        filter_results = [self.hr_bulk_checks[f.id][user.id]['check'] for f in self.filters.all()]
+
+        if self.operator == self.OperatorChoices.AND:
+            result = all(filter_results)
+        elif self.operator == self.OperatorChoices.OR:
+            result = any(filter_results)
+        elif self.operator == self.OperatorChoices.XOR:
+            result = filter_results.count(True) == 1
+        else:
+            raise ValueError(f"Unknown operator: {self.operator}")
+
+        if self.negate:
+            result = not result
+        return result
 
 
 class Setup(models.Model):

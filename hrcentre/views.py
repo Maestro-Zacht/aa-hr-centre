@@ -17,7 +17,7 @@ from corptools.models import CharacterAudit
 
 from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label, LabelGrouping
 from .forms import LabelGroupingChoiceForm, UserNotesForm
-from .utils import check_user_access, smartfilter_process_bulk, save_labels
+from .utils import check_user_access, save_labels
 
 
 def dashboard_labels(request):
@@ -110,10 +110,8 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         object_list = self.main_qs()
 
-        user_checks = self.get_checks()
         user_qs = User.objects.filter(pk__in=self.base_qs().values('character__character_ownership__user'))
-
-        checks_dict = {ck: smartfilter_process_bulk(ck.filters.all(), user_qs) for ck in user_checks}
+        user_checks = [check.with_parsed_filters(user_qs) for check in self.get_checks()]
 
         labels = Label.objects.filter(
             pk__in=UserLabel.objects
@@ -136,7 +134,7 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
         context = {
             'group_name': self.get_object_name(),
             'mains': object_list,
-            'checks': checks_dict,
+            'checks': user_checks,
             'labels': labels,
         }
         return render(request, self.template_name, context=context)
