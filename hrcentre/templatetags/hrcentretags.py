@@ -20,3 +20,8 @@ def hr_has_label(main, label):
 @register.simple_tag
 def sf_check(filter, user, bulk_data):
     return process_user(filter, user, bulk_data)
+
+
+@register.filter
+def sf_check_result(check, user):
+    return check.result_for_user(user)

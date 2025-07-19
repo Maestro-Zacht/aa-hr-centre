@@ -40,6 +40,12 @@
                                     <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="2">{% translate "Characters" %}</button>
                                     <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="3">{% translate "Last Login (ET)" %}</button>
                                     <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="4">{% translate "Labels" %}</button>
+                                    {% with labels_length=labels|length %}
+                                        {% for check in checks %}
+                                            {% widthratio forloop.counter 1 2 as counter %}
+                                            <button type="button" class="toggle-column btn btn-sm btn-info mx-1" data-column="{{ 3|add:labels_length|add:counter }}">{{ check|safe }}</button>
+                                        {% endfor %}
+                                    {% endwith %}
                                 </div>
                                 <table class="table table-aa w-100" id="members-table">
                                     <thead>
@@ -50,7 +56,11 @@
                                             <th scope="col">{% translate "Last Login (ET)" %}</th>
                                             <th scope="col">{% translate "Labels" %}</th>
                                             {% for label in labels %}
-                                                <th scope="col">{{ label }}</th>
+                                                <th scope="col">{{ label|safe }}</th>
+                                            {% endfor %}
+                                            {% for check in checks %}
+                                                <th scope="col">{{ check|safe }}</th>
+                                                <th scope="col">I should be hidden</th>
                                             {% endfor %}
                                         </tr>
                                     </thead>
@@ -86,6 +96,28 @@
                                                 </td>
                                                 {% for label in labels %}
                                                     <td>{% if main|hr_has_label:label %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td>
+                                                {% endfor %}
+                                                {% for check in checks %}
+                                                    {% with result=check|sf_check_result:main.character.character_ownership.user %}
+                                                        <td>
+                                                            <span class="badge {% if result %}text-bg-success{% else %}text-bg-danger{% endif %}">
+                                                                {% if result %}
+                                                                    <i class="fa-solid fa-check-circle"></i>
+                                                                    <p class="d-none">{% translate "Yes" %}</p>
+                                                                {% else %}
+                                                                    <i class="fa-solid fa-times-circle"></i>
+                                                                    <p class="d-none">{% translate "No" %}</p>
+                                                                {% endif %}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {% if result %}
+                                                                {% translate "Yes" %}
+                                                            {% else %}
+                                                                {% translate "No" %}
+                                                            {% endif %}
+                                                        </td>
+                                                    {% endwith %}
                                                 {% endfor %}
                                             </tr>
                                         {% endfor %}
@@ -123,10 +155,8 @@
                                                             <span class="badge {% if check_result.check %}text-bg-success{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="{{ check_result.message|default:"None" }}">
                                                                 {% if check_result.check %}
                                                                     <i class="fa-solid fa-check-circle"></i>
-                                                                    <p class="d-none">{% translate "Yes" %}</p>
                                                                 {% else %}
                                                                     <i class="fa-solid fa-times-circle"></i>
-                                                                    <p class="d-none">{% translate "No" %}</p>
                                                                 {% endif %}
                                                             </span>
                                                         </td>
@@ -163,16 +193,20 @@
 {% endblock extra_javascript %}
 
 {% block extra_script %}
+
     $(document).ready(function() {
         $('[data-bs-toggle="tooltip"]').tooltip();
         let label_columns = [{% for label in labels %}{{ 4|add:forloop.counter }}{% if not forloop.last %},{% endif %}{% endfor %}];
+        {% with labels_length=labels|length %}
+        let result_columns = [{% for check in checks %}{% widthratio forloop.counter 1 2 as counter %}{{ counter|add:4|add:labels_length }}{% if not forloop.last %},{% endif %}{% endfor %}];
+        {% endwith %}
         const membersTable = $('#members-table').DataTable({
             "pageLength": 50,
             columnDefs: [
                 {
-                    targets: label_columns,
-                    visible: false
-                }
+                    targets: label_columns.concat(result_columns),
+                    visible: false,
+                },
             ],
             filterDropDown: {
                 bootstrap: true,
@@ -181,9 +215,18 @@
                     {% for label in labels %}
                     {
                         "idx": {{ 4|add:forloop.counter }},
-                        "title": "{{ label }}",
+                        "title": "{{ label|safe }}",
                     },
                     {% endfor %}
+                    {% with labels_length=labels|length %}
+                    {% for check in checks %}
+                    {% widthratio forloop.counter 1 2 as counter %}
+                    {
+                        "idx": {{ 4|add:labels_length|add:counter }},
+                        "title": "{{ check|safe }}",
+                    },
+                    {% endfor %}
+                    {% endwith %}
                 ]
             }
         });
@@ -194,7 +237,8 @@
             columnDefs: [
                 {
                     targets: result_columns{{ check.pk }},
-                    visible: false
+                    visible: false,
+                    searchable: false
                 }
             ],
             filterDropDown: {
