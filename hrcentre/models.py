@@ -4,8 +4,6 @@ from django.utils.translation import gettext_lazy as _
 
 from allianceauth.eveonline.models import EveCorporationInfo, EveAllianceInfo
 
-from corptools.models import CharacterAudit
-
 from securegroups.models import SmartFilter
 
 
@@ -125,20 +123,6 @@ class CorporationSetup(Setup):
 
     def __str__(self):
         return f'HR setup - {self.corporation}'
-
-
-class CharacterAuditLoginData(models.Model):
-    characteraudit = models.OneToOneField(
-        CharacterAudit,
-        on_delete=models.CASCADE,
-        primary_key=True,
-        related_name='login_data'
-    )
-    last_login = models.DateTimeField(null=True, blank=True)
-    last_update = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        default_permissions = ()
 
 
 class LabelGrouping(models.Model):
