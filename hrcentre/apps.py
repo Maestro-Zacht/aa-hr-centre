@@ -7,6 +7,3 @@ class HRCentreConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'hrcentre'
     verbose_name = f'HR Centre v{version}'
-
-    def ready(self):
-        import hrcentre.signals

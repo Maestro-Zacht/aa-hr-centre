@@ -77,11 +77,11 @@
                                                 <td>{{ main.number_of_chars }}</td>
                                                 <td>
                                                     {% for char in main.character.character_ownership.user.chars %}
-                                                        <span class="badge {% if char.character|ct_is_active %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Last login (ET): {{ char.last_login|date:"Y/m/d H:i" }}">{{ char.character.character_name }}</span>
+                                                        <span class="badge {% if char.character|ct_is_active %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Last login (ET): {{ char.character.characteraudit.last_known_login|date:"Y/m/d H:i" }}">{{ char.character.character_name }}</span>
                                                     {% endfor %}
                                                 </td>
                                                 <td>
-                                                    <span class="badge {% if main.is_updating %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Oldest update between all chars: {% if main.oldest_last_update %}{{ main.oldest_last_update|date:"Y/m/d H:i" }}{% else %}Never{% endif %}">
+                                                    <span class="badge {% if main.character|ct_is_active %}text-bg-primary{% else %}text-bg-danger{% endif %}" data-bs-toggle="tooltip" data-bs-title="Oldest update between all chars: {% if main.oldest_last_update %}{{ main.oldest_last_update|date:"Y/m/d H:i" }}{% else %}Never{% endif %}">
                                                         {% if main.last_login %}
                                                             {{ main.last_login|date:"Y/m/d H:i" }}
                                                         {% else %}

@@ -15,7 +15,7 @@ from allianceauth.authentication.models import CharacterOwnership
 
 from corptools.models import CharacterAudit
 
-from .models import CorporationSetup, AllianceSetup, CharacterAuditLoginData, UserLabel, UserNotes, Label, LabelGrouping
+from .models import CorporationSetup, AllianceSetup, UserLabel, UserNotes, Label, LabelGrouping
 from .forms import LabelGroupingChoiceForm, UserNotesForm
 from .utils import check_user_access, save_labels
 
@@ -149,23 +149,14 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
         raise NotImplementedError("Subclasses must implement get_checks() method.")
 
     def main_qs(self):
-        ownership_qs = (
-            CharacterOwnership.objects
-            .select_related('character__characteraudit')
-            .annotate(
-                last_login=Subquery(
-                    CharacterAuditLoginData.objects
-                    .filter(characteraudit__character=OuterRef('character'))
-                    .values('last_login')
-                )
-            )
-        )
+        ownership_qs = CharacterOwnership.objects.select_related('character__characteraudit')
+
         user_login_qs = (
-            CharacterAuditLoginData.objects
+            CharacterAudit.objects
             .filter(
-                characteraudit__character__character_ownership__user=OuterRef('character__character_ownership__user')
+                character__character_ownership__user=OuterRef('character__character_ownership__user')
             )
-            .values('characteraudit__character__character_ownership__user')
+            .values('character__character_ownership__user')
         )
 
         return (
@@ -185,64 +176,15 @@ class CharacterAuditListView(LoginRequiredMixin, PermissionRequiredMixin, View):
             .annotate(
                 last_login=Subquery(
                     user_login_qs
-                    .annotate(last_login=Max('last_login'))
+                    .annotate(last_login=Max('last_known_login'))
                     .values('last_login')
                 )
             )
             .annotate(
-                is_updating=Case(
-                    When(
-                        LessThan(
-                            Subquery(
-                                user_login_qs
-                                .annotate(last_update=Min('last_update'))
-                                .values('last_update')
-                            ),
-                            timezone.now() - timezone.timedelta(days=1),
-                        ) |
-                        Exists(
-                            CharacterAuditLoginData.objects
-                            .filter(
-                                characteraudit__character__character_ownership__user=OuterRef('character__character_ownership__user'),
-                                last_update__isnull=True
-                            )
-                        ) |
-                        Exists(
-                            CharacterOwnership.objects
-                            .filter(
-                                character__characteraudit__isnull=True,
-                                user=OuterRef('character__character_ownership__user'),
-                            )
-                        ),
-                        then=False
-                    ),
-                    default=True,
-                )
-            )
-            .annotate(
-                oldest_last_update=Case(
-                    When(
-                        Exists(
-                            CharacterAuditLoginData.objects
-                            .filter(
-                                characteraudit__character__character_ownership__user=OuterRef('character__character_ownership__user'),
-                                last_update__isnull=True
-                            )
-                        ) |
-                        Exists(
-                            CharacterOwnership.objects
-                            .filter(
-                                character__characteraudit__isnull=True,
-                                user=OuterRef('character__character_ownership__user'),
-                            )
-                        ),
-                        then=None
-                    ),
-                    default=Subquery(
-                        user_login_qs
-                        .annotate(last_update=Min('last_update'))
-                        .values('last_update')
-                    )
+                oldest_last_update=Subquery(
+                    user_login_qs
+                    .annotate(oldest_update=Min('last_update_login'))
+                    .values('oldest_update')
                 )
             )
             .annotate(
